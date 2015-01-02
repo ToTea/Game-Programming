@@ -574,7 +574,7 @@ private:
 	void changeTarget(){
 		if(index!=0){
 			if(targetID_c==playerID_c){
-				if(GetDistanceWithCharacterID(actorID_c,playerID_c)>600.0f){
+				if(GetDistanceWithCharacterID(actorID_c,playerID_c)>500.0f){
 					targetID_c=donzoID_c;
 				}
 			}
@@ -770,8 +770,8 @@ private:
 			}
 
 			if(continueFlag){
-				//與目標距離>500時會轉向到前進後能讓距離縮小的方向才能進入前進階段
-				if(GetDistanceWithCharacterID(actorID_c,targetID_c)>500.0f){
+				//與target距離>500且與player距離>75時會轉向到前進後能讓距離縮小的方向才能進入前進階段
+				if((GetDistanceWithCharacterID(actorID_c,targetID_c)>500.0f)&&(GetDistanceWithCharacterID(actorID_c,playerID_c)>75.0f)){
 					float distanceBeforeTry;
 					float distanceAfterTry;
 					
@@ -789,7 +789,7 @@ private:
 				}else{
 					blockTurning=false;
 				}
-				//反之<500時無此條件，如此便才能在包圍目標時找空位鑽
+				//反之則無此條件，如此才能在包圍目標時找空位鑽
 			}
 		}else{
 			if(curPoseID_c!=runID_c){
