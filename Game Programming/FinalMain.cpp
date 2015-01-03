@@ -1327,8 +1327,9 @@ private:
 		
 			if(totalDamage>0){	
 
-				//被擊中就重置攻擊動作counter
+				//被擊中就重置攻擊動作counter和旋轉counter
 				timeCounter=-1;
+				turnRLflag=-1;
 				FnScene scene(sID);
 				scene.DeleteGameFXSystem(gFXID);
 				gFXID=FAILED_ID;
