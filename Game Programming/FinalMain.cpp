@@ -1,22 +1,8 @@
-/*==============================================================
-  character movement testing using Fly2
-
-  - Load a scene
-  - Generate a terrain object
-  - Load a character
-  - Control a character to move
-  - Change poses
-
-  (C)2012 Chuan-Chang Wang, All Rights Reserved
-  Created : 0802, 2012
-
-  Last Updated : 1010, 2014, Kevin C. Wang
-
- ===============================================================*/
+ /*===============================================================*/
 #include "FlyWin32.h"
 #include <time.h>
 #define PI 3.14159265
-#define enemySize 32
+#define enemySize 26
 float bug=-2.0f;
 float bug2=-2.0f;
 float bug3=-2.0f;
@@ -32,12 +18,10 @@ TEXTid textID = FAILED_ID;
 FnScene scene;
 FnObject terrain;
 BOOL4 beOK;
-GAMEFX_SYSTEMid gFXID = FAILED_ID;
 AUDIOid bgmID;
 
 float testAngle=-2.0f;//例外偵測
-void enemy_hurt(int);
-void setFX(int);
+void hurtSound(int);
 
 float GetDistance(float*pos1,float*pos2){
 	return (sqrt(pow(pos1[0] - pos2[0], 2) + pow(pos1[1] - pos2[1], 2) +pow(pos1[2] - pos2[2], 2)));
@@ -409,6 +393,7 @@ public:
 		walkSpeed=walkSpeed_input;
 		toTargetRange=toTargetRange_input;
 		HPconst=HP_input;
+		blockTurningDir=false;
 	
 		setHelper();
 	} 
@@ -416,6 +401,17 @@ public:
 
 	//GameAI call this
 	void doActions(int skip,CHARACTERid firstAttackerID,int totalDamage){
+
+		// play game FX
+		if (gFXID != FAILED_ID) {
+			FnGameFXSystem gxS(gFXID);
+			BOOL4 beOK = gxS.Play((float)skip, ONCE);
+			if (!beOK) {
+				FnScene scene(sID);
+				scene.DeleteGameFXSystem(gFXID);
+				gFXID = FAILED_ID;
+			}
+		}
 
 		changeTarget();
 
@@ -540,6 +536,10 @@ public:
 		
 		actor_c.SetPosition(pos);
 	}
+
+	void setBlockTurningDir(bool input){
+		blockTurningDir=input;
+	}
     
 private:
 	int enemy_category;
@@ -569,12 +569,32 @@ private:
 	
 	int blockCounter;
 	bool blockTurning;
+	bool blockTurningDir;
+
+	GAMEFX_SYSTEMid gFXID;
+
+	void setFX(int index){
+
+		scene.DeleteGameFXSystem(gFXID);
+		gFXID = scene.CreateGameFXSystem();
+
+		OBJECTid baseID = actor_c.GetBaseObject();
+
+		FnGameFXSystem gxS(gFXID);
+		
+		if (index == 2) {
+			BOOL4 beOK = gxS.Load("Lyubu_atk01", TRUE);
+		}
+		
+		gxS.SetParentObjectForAll(baseID);
+
+	}
 
 	//player逃跑一定距離就回去戳donzo
 	void changeTarget(){
 		if(index!=0){
 			if(targetID_c==playerID_c){
-				if(GetDistanceWithCharacterID(actorID_c,playerID_c)>500.0f){
+				if(GetDistanceWithCharacterID(actorID_c,playerID_c)>300.0f){
 					targetID_c=donzoID_c;
 				}
 			}
@@ -620,6 +640,8 @@ private:
 		savedTurnTarget[0]=-9999.0;
 		savedTurnTarget[1]=-9999.0;
 		savedTurnTarget[2]=-9999.0;
+
+		gFXID=FAILED_ID;
 	}
 	
 	//判斷是否被擊中並設定對應動作
@@ -633,6 +655,8 @@ private:
 
 				//被擊中就重置攻擊動作counter
 				timeCounter=-1;	
+				scene.DeleteGameFXSystem(gFXID);
+				gFXID=FAILED_ID;
 				
 				if(HP>0){
 					HP-=totalDamage;
@@ -646,14 +670,16 @@ private:
 					curPoseID_c = hurtID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 					if(enemy_category==0){
-						enemy_hurt(1);
+						hurtSound(0);
 					}else if(enemy_category==1){
-						enemy_hurt(0);
+						hurtSound(1);
+					}else if(enemy_category==2){
+						hurtSound(2);
 					}
 				}else if((HP<=0)&&(curPoseID_c != dieID_c)){
 					curPoseID_c = dieID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
-					enemy_hurt(3);
+					hurtSound(3);
 				}
 			}
 	}
@@ -751,7 +777,11 @@ private:
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 			}
 
-			actor_c.TurnRight(turnSpeed);
+			if(!blockTurningDir){
+				actor_c.TurnRight(turnSpeed);
+			}else{
+				actor_c.TurnRight(-turnSpeed);
+			}
 
 			if(playerHPpntr[0]>0){
 				continueFlag=testIFforward(actorID_c,playerID_c,50.0f);
@@ -770,26 +800,7 @@ private:
 			}
 
 			if(continueFlag){
-				//與target距離>500且與player距離>75時會轉向到前進後能讓距離縮小的方向才能進入前進階段
-				if((GetDistanceWithCharacterID(actorID_c,targetID_c)>500.0f)&&(GetDistanceWithCharacterID(actorID_c,playerID_c)>75.0f)){
-					float distanceBeforeTry;
-					float distanceAfterTry;
-					
-					distanceBeforeTry=GetDistanceWithCharacterID(actorID_c,targetID_c);
-				
-					actor_c.MoveForward(walkSpeed, TRUE, FALSE, FALSE, FALSE);
-				
-					distanceAfterTry=GetDistanceWithCharacterID(actorID_c,targetID_c);
-	
-					actor_c.MoveForward(-walkSpeed, TRUE, FALSE, FALSE, FALSE);
-				
-					if(distanceAfterTry<=distanceBeforeTry){
-						blockTurning=false;
-					}
-				}else{
 					blockTurning=false;
-				}
-				//反之則無此條件，如此才能在包圍目標時找空位鑽
 			}
 		}else{
 			if(curPoseID_c!=runID_c){
@@ -881,6 +892,7 @@ private:
 						timeCounter=hitCounter+15;
 					}else if(enemy_category==2){
 						timeCounter=hitCounter+20;
+						setFX(2);
 					}
 				}
 				//timeCounter是至下一次攻擊的總時間，hitCounter是根據enemy_category設定的統一擊中判定時間，相當於硬直
@@ -990,6 +1002,8 @@ public:
 		for(int y=0;y<enemySize;y++){
 			damageToEnemies[y]=0;
 		}
+
+		gFXID = FAILED_ID;
 	}
 
 	void setTurnSpeed(float input){
@@ -1068,20 +1082,19 @@ public:
 	void setAttackingAction(int index){
 		
 			if (((curPoseID_c == idleID_c)||(curPoseID_c == runID_c))&&(turnRLflag==-1)){
-				if((index==0)&&(MP>=30)){
-					MP-=30;
+				if(index==0){
 					curPoseID_c = atk1ID_c;
 					timeCounter=0;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 					setFX(1);
-				}else if((index==1)&&(MP>=60)){
-					MP-=60;
+				}else if((index==1)&&(MP>=30)){
+					MP-=30;
 					curPoseID_c = atk2ID_c;
 					timeCounter=20;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 					setFX(2);
-				}else if((index==2)&&(MP>=90)){
-					MP-=90;
+				}else if((index==2)&&(MP>=60)){
+					MP-=60;
 					curPoseID_c = atk3ID_c;
 					timeCounter=5;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
@@ -1133,9 +1146,23 @@ public:
 
 	//做動作，由GameAI呼叫
 	void doActions(int skip,CHARACTERid firstAttackerID,int totalDamage){
-		
+
+		// play game FX
+		if (gFXID != FAILED_ID) {
+			FnGameFXSystem gxS(gFXID);
+			BOOL4 beOK = gxS.Play((float)skip, ONCE);
+			if (!beOK) {
+				FnScene scene(sID);
+				scene.DeleteGameFXSystem(gFXID);
+				gFXID = FAILED_ID;
+			}
+		}
+
 		if(curPoseID_c != guardID_c){
 			beHit(firstAttackerID,totalDamage);
+		}else{
+			if(totalDamage>0)
+				hurtSound(4);
 		}
 
 		if((curPoseID_c==runID_c)||(curPoseID_c==idleID_c)||(curPoseID_c==guardID_c)){
@@ -1225,6 +1252,29 @@ private:
 	int MP;
 	int MPconst;
 	bool ifPlayerCanAttackDonzo;
+	GAMEFX_SYSTEMid gFXID;
+
+	void setFX(int index){
+
+		scene.DeleteGameFXSystem(gFXID);
+		gFXID = scene.CreateGameFXSystem();
+
+		OBJECTid baseID = actor_c.GetBaseObject();
+
+		FnGameFXSystem gxS(gFXID);
+		if (index == 2) {
+			BOOL4 beOK = gxS.Load("Lyubu_atk01", TRUE);
+		}
+		if (index == 1) {
+			BOOL4 beOK = gxS.Load("Lyubu_skill01", TRUE);
+		}
+		if (index == 3) {
+			BOOL4 beOK = gxS.Load("Lyubu_skill03", TRUE);
+		}
+
+		gxS.SetParentObjectForAll(baseID);
+
+	}
 	
 	//判斷是否被擊中並設定對應動作
 	void beHit(CHARACTERid firstAttackerID,int totalDamage){
@@ -1250,9 +1300,13 @@ private:
 				if(HP>0){
 					curPoseID_c = hurtID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+						
+					hurtSound(2);
 				}else if((HP<=0)&&(curPoseID_c != dieID_c)){
 					curPoseID_c = dieID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
+
+					hurtSound(3);
 				}
 			}
 	}
@@ -1810,9 +1864,11 @@ private:
          
          if(i < shallSpawnNum/2){
 	         enemyArray[alreadyUsedEnemyPointer]->setter(fDir,uDir,magicPos[0]);
+			 enemyArray[alreadyUsedEnemyPointer]->setBlockTurningDir(false);
 	      }
 	      else{
 	      	enemyArray[alreadyUsedEnemyPointer]->setter(fDir,uDir,magicPos[1]);	
+			enemyArray[alreadyUsedEnemyPointer]->setBlockTurningDir(true);
 	      }
       }
    }
@@ -1826,9 +1882,10 @@ private:
       uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
 
       enemyArray[enemySize-1]->setter(fDir,uDir,magicPos);
+	   enemyArray[enemySize-1]->setBlockTurningDir(true);
    }
 public:
-   WaveController(int maxWaveCountin = 5, int everyWaveTimein = 600){
+   WaveController(int maxWaveCountin = 3, int everyWaveTimein = 600){
       timer = 0; //unit: frame
       waveCount = 1;
       maxWaveCount = maxWaveCountin; //max+1 wave ryubu will spawn
@@ -1954,8 +2011,8 @@ void FyMain(int argc, char **argv)
 
    //init managers
    controller=new Controller();
-   waveController = new WaveController(5,600);
-   player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100,270);
+   waveController = new WaveController();
+   player=new Player(controller,pos,fDir,uDir,15.0f,10.0f,100,180);
    camera=new Camera(player,controller,700.0f,50.0f,2.5f,10.0f,40.0f);
 
    playerHP[0]=player->getHP();
@@ -1967,7 +2024,7 @@ void FyMain(int argc, char **argv)
    fDir[0] = -1.0f; fDir[1] = -1.0f; fDir[2] = -0.0f;
 
    pos[0]-=550.0f;
-   enemyArray[0]=new enemy(-1,player->getID(),"Donzo2",pos,fDir,uDir,15.0f,5.0f,135.0f,50,45,0);
+   enemyArray[0]=new enemy(-1,player->getID(),"Donzo2",pos,fDir,uDir,15.0f,5.0f,135.0f,120,45,0);
    enemyID[0]=enemyArray[0]->getID();
    enemyHP[0]=enemyArray[0]->getHP();
 
@@ -2014,10 +2071,6 @@ void FyMain(int argc, char **argv)
    FyDefineHotKey(FY_Z, Movement, FALSE);
    FyDefineHotKey(FY_X, Movement, FALSE);
    FyDefineHotKey(FY_C, Movement, FALSE);
-   FyDefineHotKey(FY_V, Movement, FALSE);
-   FyDefineHotKey(FY_B, Movement, FALSE);
-   FyDefineHotKey(FY_N, Movement, FALSE);
-   FyDefineHotKey(FY_M, Movement, FALSE);
    FyDefineHotKey(FY_Q, Movement, FALSE);
 
    // define some mouse functions
@@ -2106,17 +2159,6 @@ void GameAI(int skip)
 
    //wave control
    waveController->everyFrameCheck();
-
-   // play game FX
-   if (gFXID != FAILED_ID) {
-	   FnGameFXSystem gxS(gFXID);
-	   BOOL4 beOK = gxS.Play((float)skip, ONCE);
-	   if (!beOK) {
-		   FnScene scene(sID);
-		   scene.DeleteGameFXSystem(gFXID);
-		   gFXID = FAILED_ID;
-	   }
-   }
 }
 
 
@@ -2293,41 +2335,6 @@ void Movement(BYTE code, BOOL4 value)
 		}
 	}
 
-	//敵人呂布set測試鍵
-	if (code == FY_V){
-		 float pos[3],fDir[3],uDir[3];
-		
-		pos[0] = 3569.0f; pos[1] = -3208.0f; pos[2] = 1000.0f;
-		fDir[0] = 1.0f; fDir[1] = 1.0f; fDir[2] = 0.0f;
-		uDir[0] = 0.0f; uDir[1] = 0.0f; uDir[2] = 1.0f;
-		
-		if(value){
-			enemyArray[enemySize-1]->setter(fDir,uDir,pos);
-		}
-	}
-
-	//敵人呂布kill測試鍵
-	if (code == FY_B){
-		
-		if(value){
-			enemyArray[enemySize-1]->killer();
-		}
-	}
-
-	//開關player能否攻擊Donzo的flag之測試鍵
-	if (code == FY_N){
-		if(value){
-			player->ifPlayerCanAttackDonzoON();
-		}
-	}
-
-	//同上
-	if (code == FY_M){
-		if(value){
-			player->ifPlayerCanAttackDonzoOFF();
-		}
-	}
-
 	if (code == FY_Q){
 		player->setGuardAction(value);
 	}
@@ -2354,23 +2361,25 @@ void QuitGame(BYTE code, BOOL4 value)
   When the enemy is hurt, play the sound of hurting and die
   Kelly C.
 */
-void enemy_hurt(int enemy) {
+void hurtSound(int index) {
 	AUDIOid hurtID = FyCreateAudio();
 	FnAudio sound;
 	sound.ID(hurtID);
-	if (enemy == 0) { //robber being attacked
-		if (rand() % 3 == 1)
-			sound.Load("Data\\robber1");
-		else if (rand() % 3 == 2)
+	if (index == 0) { //Donzo being attacked
+		sound.Load("Data\\Donzo");
+	}
+	else if (index == 1) { //robber being attacked
+		if (rand() % 2 == 1)
 			sound.Load("Data\\robber2");
 		else
 			sound.Load("Data\\robber3");
 	}
-	else if (enemy == 1) { //Donzo being attacked
-		sound.Load("Data\\Donzo");
-	}
-	else if (enemy == 3) { // is dead
+	else if (index == 2) { // Lyubu being attacked
+		sound.Load("Data\\robber1");
+	}else if (index == 3) { // dead sound
 		sound.Load("Data\\robber_death");
+	}else if (index == 4) { // defend sound
+		sound.Load("Data\\sword");
 	}
 	sound.Play(ONCE);
 	//FyDeleteAudio(hurtID);
@@ -2380,33 +2389,6 @@ void enemy_hurt(int enemy) {
  set the FX
  kelly C.
 -------------------*/
-void setFX(int skill){
-
-
-	FnScene scene(sID);
-	FnCharacter actor;
-	actor.ID(player->getID());
-
-	scene.DeleteGameFXSystem(gFXID);
-	gFXID = scene.CreateGameFXSystem();
-
-
-	OBJECTid baseID = actor.GetBaseObject();
-
-	FnGameFXSystem gxS(gFXID);
-	if (skill == 2) {
-		BOOL4 beOK = gxS.Load("Lyubu_atk01", TRUE);
-	}
-	if (skill == 1) {
-		BOOL4 beOK = gxS.Load("Lyubu_skill01", TRUE);
-	}
-	if (skill == 3) {
-		BOOL4 beOK = gxS.Load("Lyubu_skill03", TRUE);
-	}
-
-	gxS.SetParentObjectForAll(baseID);
-
-}
 
 
 
