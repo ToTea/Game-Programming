@@ -3,21 +3,36 @@
 #include <time.h>
 #define PI 3.14159265
 #define enemySize 26
+
+int spritecounter = 0;
+int gamestage = 1;
+int width = 800;            // window width
+int height = 600;            // window height
+BOOL4 beFullScreen = FALSE;  // be full screen or not
+
+OBJECTid spID0 = FAILED_ID;  // the sprite for background, Graphic01.dds
+OBJECTid spID1 = FAILED_ID;  // the sprite for background, Graphic02.dds
+OBJECTid spID2 = FAILED_ID;  // the sprite for FSN_Become-13
+OBJECTid spID3 = FAILED_ID;  // the sprite for testing
+OBJECTid spID4 = FAILED_ID;  // the sprite for FSN_Become-13
+OBJECTid spID5 = FAILED_ID;  // the sprite for testing
+SCENEid sID2;                    // the sprite scene
+float uv[4];                 // the texture uv to display image on sprite spID2
+
 float bug=-2.0f;
 float bug2=-2.0f;
 float bug3=-2.0f;
 float bug4=-2.0f;
 float bug5=-2.0f;
 float bug6=-2.0f;
+float bug7;
 
 VIEWPORTid vID;                 // the major viewport
 SCENEid sID;                    // the 3D scene
 OBJECTid cID, tID;              // the main camera and the terrain for terrain following
 ROOMid terrainRoomID = FAILED_ID;
 TEXTid textID = FAILED_ID;
-FnScene scene;
-FnObject terrain;
-BOOL4 beOK;
+
 AUDIOid bgmID;
 
 float testAngle=-2.0f;//例外偵測
@@ -350,12 +365,14 @@ class enemy {
 public: 
 	enemy(CHARACTERid donzoID,CHARACTERid playerID,char* name,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,float walkSpeed_input,float toTargetRange_input,int HP_input,int hitCounter_input,int index_input){
 		//初始化
+
+		FnScene scene(sID);
 		actorID_c = scene.LoadCharacter(name);
 		
         actor_c.ID(actorID_c);
 		actor_c.SetDirection(fDir_c, uDir_c);
 		actor_c.SetTerrainRoom(terrainRoomID, 10.0f);
-        beOK = actor_c.PutOnTerrain(pos_c);
+        BOOL4 beOK = actor_c.PutOnTerrain(pos_c);
 
 		if(strcmp(name,"Donzo2")==0){
 			enemy_category=0;
@@ -520,7 +537,7 @@ public:
 
 		actor_c.SetDirection(fDir, uDir);
 		actor_c.SetTerrainRoom(terrainRoomID, 10.0f);
-        beOK = actor_c.PutOnTerrain(pos);
+        BOOL4 beOK = actor_c.PutOnTerrain(pos);
 		
 		curPoseID_c = idleID_c;
 		actor_c.SetCurrentAction(NULL, 0, curPoseID_c);
@@ -575,6 +592,7 @@ private:
 
 	void setFX(int index){
 
+		FnScene scene(sID);
 		scene.DeleteGameFXSystem(gFXID);
 		gFXID = scene.CreateGameFXSystem();
 
@@ -655,6 +673,7 @@ private:
 
 				//被擊中就重置攻擊動作counter
 				timeCounter=-1;	
+				FnScene scene(sID);
 				scene.DeleteGameFXSystem(gFXID);
 				gFXID=FAILED_ID;
 				
@@ -680,6 +699,18 @@ private:
 					curPoseID_c = dieID_c;
 					actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 					hurtSound(3);
+
+					if (enemy_category == 0){
+						FnSprite sp;
+						sp.Object(spID0);
+						sp.SetImage("Data\\Textures\\D3", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+						spritecounter = 100;
+					}else if (enemy_category == 2){
+						FnSprite sp;
+						sp.Object(spID0);
+						sp.SetImage("Data\\Textures\\LF3", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+						spritecounter = 100;
+					}
 				}
 			}
 	}
@@ -960,13 +991,14 @@ class Player{
 public:
 	Player(Controller*controller_input,float*pos_c,float*fDir_c,float*uDir_c,float turnSpeed_input,int walkSpeed_input,int HP_input,int MP_input){
 		//初始化資料
-		
+
+		FnScene scene(sID);
 		actorID_c = scene.LoadCharacter("Lyubu2");
    
         actor_c.ID(actorID_c);
 		actor_c.SetDirection(fDir_c, uDir_c);
 		actor_c.SetTerrainRoom(terrainRoomID, 10.0f);
-        beOK = actor_c.PutOnTerrain(pos_c);
+        BOOL4 beOK = actor_c.PutOnTerrain(pos_c);
 		
 		idleID_c = actor_c.GetBodyAction(NULL, "Idle");
         runID_c = actor_c.GetBodyAction(NULL, "Run");
@@ -994,7 +1026,8 @@ public:
 		turnRLflag=-1;
 		turnSpeed=turnSpeed_input;
 		walkSpeed=walkSpeed_input;
-		HP=HP_input;
+		HPconst=HP_input;
+		HP=HPconst;
 		MPconst=MP_input;
 		MP=MPconst;
 		ifPlayerCanAttackDonzo=false;
@@ -1022,8 +1055,16 @@ public:
 		return HP;
 	}
 
+	int getHPconst(){
+		return HPconst;
+	}
+
 	int getMP(){
 		return MP;
+	}
+
+	int getMPconst(){
+		return MPconst;
 	}
 
 	CHARACTERid getID(){
@@ -1249,6 +1290,7 @@ private:
 	int walkFlag;//有無成功前進
 	float walkSpeed;
 	int HP;
+	int HPconst;
 	int MP;
 	int MPconst;
 	bool ifPlayerCanAttackDonzo;
@@ -1256,6 +1298,7 @@ private:
 
 	void setFX(int index){
 
+		FnScene scene(sID);
 		scene.DeleteGameFXSystem(gFXID);
 		gFXID = scene.CreateGameFXSystem();
 
@@ -1285,7 +1328,8 @@ private:
 			if(totalDamage>0){	
 
 				//被擊中就重置攻擊動作counter
-				timeCounter=-1;	
+				timeCounter=-1;
+				FnScene scene(sID);
 				scene.DeleteGameFXSystem(gFXID);
 				gFXID=FAILED_ID;
 				
@@ -1414,6 +1458,7 @@ class Camera{
 			float fDir[3],uDir[3];
 			
 			//攝影機初始化
+			FnScene scene(sID);
 			cID = scene.CreateObject(CAMERA);
 			
 			camera_c.ID(cID);
@@ -1530,6 +1575,7 @@ class Camera{
 			float uDir[3];
 			int localflag;
 
+			FnScene scene(sID);
 			OBJECTid objID = scene.CreateObject(OBJECT);
 			FnObject obj;
 			obj.ID(objID);
@@ -1762,6 +1808,8 @@ class Camera{
 		//camera碰撞測試
 		int testHit()
 		{
+			FnObject terrain(tID);
+
 			float dirt[3], origint[3];  
 			dirt[0] = 0.0f;
 			dirt[1] = 0.0f;
@@ -1955,7 +2003,7 @@ void FyMain(int argc, char **argv)
 {
 	
 	// create a new world
-   beOK = FyStartFlyWin32("NTU@2014 Homework #01 - Use Fly2", 0, 0, 800, 600, FALSE);
+   BOOL4 beOK = FyStartFlyWin32("NTU@2014 Homework #01 - Use Fly2", 0, 0, 800, 600, FALSE);
 
    // setup the data searching paths
    FySetShaderPath("Data\\Shaders");
@@ -1972,6 +2020,7 @@ void FyMain(int argc, char **argv)
    // create a 3D scene
    sID = FyCreateScene(10);
    
+   FnScene scene(sID);
    scene.ID(sID);
 
    // load the scene
@@ -1980,7 +2029,7 @@ void FyMain(int argc, char **argv)
 
    // load the terrain
    tID = scene.CreateObject(OBJECT);
-   terrain.ID(tID);
+   FnObject terrain(tID);
    BOOL beOK1 = terrain.Load("terrain");
    terrain.Show(FALSE);
 
@@ -2055,6 +2104,44 @@ void FyMain(int argc, char **argv)
    lgt.SetColor(1.0f, 1.0f, 1.0f);
    lgt.SetIntensity(1.0f);
 
+   //testS
+	sID2 = FyCreateScene(1);
+	FnScene scene2D(sID2);
+	scene2D.Object(sID2);
+	scene2D.SetSpriteWorldSize(width, height);         // 2D scene size in pixels
+	FnSprite sp,sp2,sp3,sp4,sp5,sp6;
+	spID0 = scene2D.CreateObject(SPRITE);
+	sp.Object(spID0);
+	sp.SetSize(700, 250);
+	sp.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	sp.SetPosition(0, -20, 0);
+	spID1 = scene2D.CreateObject(SPRITE);
+	sp2.Object(spID1);
+	sp2.SetSize(800, 600);
+	sp2.SetImage("Data\\Textures\\begin", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	sp2.SetPosition(0, 0, 0);
+	spID2 = scene2D.CreateObject(SPRITE);
+	sp3.Object(spID2);
+	sp3.SetSize(480, 120);
+	sp3.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	sp3.SetPosition(160, 240, 0);
+	spID4 = scene2D.CreateObject(SPRITE);
+	sp5.Object(spID4);
+	sp5.SetSize(250, 10);
+	sp5.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	sp5.SetPosition(85, 550, 0);
+	spID5 = scene2D.CreateObject(SPRITE);
+	sp6.Object(spID5);
+	sp6.SetSize(250, 10);
+	sp6.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	sp6.SetPosition(85, 535, 0);
+	spID3 = scene2D.CreateObject(SPRITE);
+	sp4.Object(spID3);
+	sp4.SetSize(400, 100);
+	sp4.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	sp4.SetPosition(0, 500, -10);
+
+
    // create a text object for displaying messages on screen
    textID = FyCreateText("Trebuchet MS", 18, FALSE, FALSE);
 
@@ -2102,6 +2189,70 @@ void FyMain(int argc, char **argv)
  --------------------------------------------------------------*/
 void GameAI(int skip)
 {
+	FnSprite sp,sp2,sp3,sp4,sp5,sp6;
+	sp.Object(spID0);
+	sp2.Object(spID1);
+	sp3.Object(spID2);
+	sp4.Object(spID3);
+	sp5.Object(spID4);
+	sp6.Object(spID5);
+	float percent;
+	float tmp;
+	percent=(float)player->getHP()/player->getHPconst();
+	tmp = 250.0f*percent;
+	sp5.SetSize((int)tmp, 10);
+	percent=(float)player->getMP()/player->getMPconst();
+	tmp = 250.0f*percent;
+	bug7=tmp;
+	sp6.SetSize((int)tmp, 10);
+	if (waveController->getTimer() == 100){
+		sp.SetImage("Data\\Textures\\D1", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp2.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp4.SetImage("Data\\Textures\\blood", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp5.SetImage("Data\\Textures\\health", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp6.SetImage("Data\\Textures\\mana", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp2.SetPosition(-99999, -99999, -99999);
+		spritecounter = 100;
+	}
+	if (waveController->getTimer() == 200){
+		sp.SetImage("Data\\Textures\\L1", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		spritecounter = 100;
+	}
+	if (waveController->getTimer() == 300){
+		sp3.SetImage("Data\\Textures\\battle01", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		spritecounter = 100;
+	}
+	if (gamestage == 1 && waveController->getWaveCount() == 3){
+		sp.SetImage("Data\\Textures\\D2", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp3.SetImage("Data\\Textures\\battle02", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		spritecounter = 100;
+		gamestage++;
+	}
+	if (gamestage == 2 && waveController->getWaveCount() == 4){
+		sp.SetImage("Data\\Textures\\LF1", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp3.SetImage("Data\\Textures\\battle03", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		spritecounter = 300;
+		gamestage++;
+	}
+	if (spritecounter == 200){
+		sp.SetImage("Data\\Textures\\L3", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp3.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	}
+	if (spritecounter == 101){
+		sp.SetImage("Data\\Textures\\LF2", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	}
+	if (spritecounter > 0){
+		spritecounter--;
+		if (spritecounter == 0){
+			sp.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+			sp3.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		}
+	}
+	if (spritecounter == 0 && waveController->getWaveCount() == 3){
+		sp.SetImage("Data\\Textures\\L2", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		spritecounter = 100;
+	}
+	
 	int totalDamage;
 	CHARACTERid firstAttackerID;
 	
@@ -2173,6 +2324,7 @@ void RenderIt(int skip)
    // render the whole scene
    vp.ID(vID);
    vp.Render3D(cID, TRUE, TRUE);
+   vp.RenderSprites(sID2, FALSE, FALSE);
 
    // get camera's data
    FnCamera camera;
@@ -2200,14 +2352,14 @@ void RenderIt(int skip)
       frame = 0;
    }
 
-   FnText text;
+   /*FnText text;
    text.ID(textID);
 
    text.Begin(vID);
    text.Write(string, 20, 20, 255, 0, 0);
 
    char d11DirS[256];
-   char posS[256], fDirS[256], uDirS[256],dDirS[256],d2DirS[256],d3DirS[256],d4DirS[256],d5DirS[256],d6DirS[256];
+   char posS[256], fDirS[256], uDirS[256],dDirS[256],d2DirS[256],d3DirS[256],d4DirS[256],d5DirS[256],d6DirS[256],d7DirS[256];
    sprintf(posS, "pos: %8.3f %8.3f %8.3f", pos[0], pos[1], pos[2]);
    sprintf(fDirS, "facing: %8.3f %8.3f %8.3f", fDir[0], fDir[1], fDir[2]);
    sprintf(uDirS, "up: %8.3f %8.3f %8.3f", uDir[0], uDir[1], uDir[2]);
@@ -2217,6 +2369,7 @@ void RenderIt(int skip)
    sprintf(d4DirS, "constRadius_c: %8.3f ", bug4);
    sprintf(d5DirS, "constHeight_c: %8.3f ", bug5);
    sprintf(d6DirS, "constSide_c: %8.3f ", bug6);
+   sprintf(d7DirS, "bug7: %8.3f ", bug7);
    sprintf(d11DirS, "testAngle: %8.3f ", testAngle);
 
    text.Write(posS, 20, 35, 255, 255, 0);
@@ -2228,9 +2381,10 @@ void RenderIt(int skip)
    text.Write(d4DirS, 20, 125, 255, 255, 0);
    text.Write(d5DirS, 20, 140, 255, 255, 0);
    text.Write(d6DirS, 20, 155, 255, 255, 0);
-   text.Write(d11DirS, 20, 170, 255, 255, 0);
+   text.Write(d7DirS, 20, 170, 255, 255, 0);
+   text.Write(d11DirS, 20, 185, 255, 255, 0);
 
-   text.End();
+   text.End();*/
 
    // swap buffer
    FySwapBuffers();
