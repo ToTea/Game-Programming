@@ -626,8 +626,21 @@ private:
 
 		FnGameFXSystem gxS(gFXID);
 
+		if (index == 1) {
+			BOOL4 beOK = gxS.Load("SpellHome_02", TRUE);
+		}
+		
+		
 		if (index == 2) {
 			BOOL4 beOK = gxS.Load("Lyubu_atk01", TRUE);
+		}
+
+		if(index==3){
+			BOOL4 beOK = gxS.Load("SpellHome_01", TRUE);
+		}
+
+		if(index==4){
+			BOOL4 beOK = gxS.Load("AttacKBasic", TRUE);
 		}
 
 		gxS.SetParentObjectForAll(baseID);
@@ -726,12 +739,13 @@ private:
 				else if (enemy_category == 2){
 					hurtSound(2);
 				}
+				setFX(1);
 			}
 			else if ((HP <= 0) && (curPoseID_c != dieID_c)){
 				curPoseID_c = dieID_c;
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 				hurtSound(3);
-
+				setFX(3);
 				if (enemy_category == 0){
 					FnSprite sp,sp3;
 					sp.Object(spID0);
@@ -775,7 +789,7 @@ private:
 			else if (enemy_category == 2){
 				angleLimit = 60.0f;
 				lengthLimit = 135.0f;
-				damage = 3;
+				damage = 5;
 			}
 		}
 
@@ -965,9 +979,11 @@ private:
 			if (curPoseID_c == attack1ID_c){
 				if (enemy_category == 0){
 					timeCounter = hitCounter + 15;
+					setFX(4);
 				}
 				else if (enemy_category == 1){
 					timeCounter = hitCounter + 15;
+					setFX(4);
 				}
 				else if (enemy_category == 2){
 					timeCounter = hitCounter + 20;
@@ -1259,8 +1275,10 @@ public:
 			beHit(firstAttackerID, totalDamage);
 		}
 		else{
-			if (totalDamage>0)
+			if (totalDamage>0){
 				hurtSound(4);
+				setFX(6);
+			}
 		}
 
 		if ((curPoseID_c == runID_c) || (curPoseID_c == idleID_c) || (curPoseID_c == guardID_c)){
@@ -1376,6 +1394,16 @@ private:
 		if (index == 3) {
 			BOOL4 beOK = gxS.Load("Lyubu_skill03", TRUE);
 		}
+		if (index == 4) {
+			BOOL4 beOK = gxS.Load("SpellHome_02", TRUE);
+		}
+		if (index == 5) {
+			BOOL4 beOK = gxS.Load("SpellHome_01", TRUE);
+		}
+
+		if (index == 6) {
+			BOOL4 beOK = gxS.Load("Lyubu_skill02", TRUE);
+		}
 
 		gxS.SetParentObjectForAll(baseID);
 
@@ -1409,6 +1437,7 @@ private:
 				actor_c.SetCurrentAction(NULL, 0, curPoseID_c, 5.0f);
 
 				hurtSound(2);
+				setFX(4);
 			}
 			else if ((HP <= 0) && (curPoseID_c != dieID_c)){
 				curPoseID_c = dieID_c;
@@ -1420,6 +1449,7 @@ private:
 					gameend = 1;
 				}
 				hurtSound(3);
+				setFX(5);
 			}
 		}
 	}
@@ -2161,7 +2191,7 @@ void FyMain(int argc, char **argv)
 	fDir[0] = -1.0f; fDir[1] = -1.0f; fDir[2] = -0.0f;
 
 	pos[0] -= 550.0f;
-	enemyArray[0] = new enemy(-1, player->getID(), "Donzo2", pos, fDir, uDir, 15.0f, 5.0f, 135.0f, 120, 45, 0);
+	enemyArray[0] = new enemy(-1, player->getID(), "Donzo2", pos, fDir, uDir, 15.0f, 5.0f, 135.0f, 90, 45, 0);
 	enemyID[0] = enemyArray[0]->getID();
 	enemyHP[0] = enemyArray[0]->getHP();
 
@@ -2174,7 +2204,7 @@ void FyMain(int argc, char **argv)
 		enemyHP[y] = enemyArray[y]->getHP();
 	}
 
-	enemyArray[enemySize - 1] = new enemy(enemyArray[0]->getID(), player->getID(), "Lyubu2", pos, fDir, uDir, 15.0f, 5.0f, 75.0f, 20, 120, enemySize - 1);
+	enemyArray[enemySize - 1] = new enemy(enemyArray[0]->getID(), player->getID(), "Lyubu2", pos, fDir, uDir, 15.0f, 5.0f, 75.0f, 60, 120, enemySize - 1);
 	enemyID[enemySize - 1] = enemyArray[enemySize - 1]->getID();
 	enemyHP[enemySize - 1] = enemyArray[enemySize - 1]->getHP();
 
