@@ -16,7 +16,8 @@ OBJECTid spID1 = FAILED_ID;  // the sprite for background, Graphic02.dds
 OBJECTid spID2 = FAILED_ID;  // the sprite for FSN_Become-13
 OBJECTid spID3 = FAILED_ID;  // the sprite for testing
 OBJECTid spID4 = FAILED_ID;  // the sprite for FSN_Become-13
-OBJECTid spID5 = FAILED_ID;  // the sprite for testing
+OBJECTid spID5 = FAILED_ID;
+OBJECTid spID6 = FAILED_ID;// the sprite for testing
 SCENEid sID2;                    // the sprite scene
 float uv[4];                 // the texture uv to display image on sprite spID2
 
@@ -534,6 +535,10 @@ public:
 
 	int getHP(){
 		return HP;
+	}
+
+	int getHPconst(){
+		return HPconst;
 	}
 
 	//讓外部知道命中並回傳傷害
@@ -2227,7 +2232,7 @@ void FyMain(int argc, char **argv)
 	FnScene scene2D(sID2);
 	scene2D.Object(sID2);
 	scene2D.SetSpriteWorldSize(width, height);         // 2D scene size in pixels
-	FnSprite sp, sp2, sp3, sp4, sp5, sp6;
+	FnSprite sp, sp2, sp3, sp4, sp5, sp6,sp7;
 	spID0 = scene2D.CreateObject(SPRITE);
 	sp.Object(spID0);
 	sp.SetSize(700, 250);
@@ -2259,6 +2264,11 @@ void FyMain(int argc, char **argv)
 	sp4.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
 	sp4.SetPosition(0, 500, -10);
 
+	spID6 = scene2D.CreateObject(SPRITE);
+	sp7.Object(spID6);
+	sp7.SetSize(10,500);
+	sp7.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+	sp7.SetPosition(750, 50, 0);
 
 	// create a text object for displaying messages on screen
 	textID = FyCreateText("Trebuchet MS", 18, FALSE, FALSE);
@@ -2307,28 +2317,35 @@ C.Wang 1103, 2007
 --------------------------------------------------------------*/
 void GameAI(int skip)
 {
-	FnSprite sp, sp2, sp3, sp4, sp5, sp6;
+	FnSprite sp, sp2, sp3, sp4, sp5, sp6,sp7;
 	sp.Object(spID0);
 	sp2.Object(spID1);
 	sp3.Object(spID2);
 	sp4.Object(spID3);
 	sp5.Object(spID4);
 	sp6.Object(spID5);
+	sp7.Object(spID6);
 	float percent;
 	float tmp;
+
 	percent = (float)player->getHP() / player->getHPconst();
 	tmp = 250.0f*percent;
 	sp5.SetSize((int)tmp, 10);
 	percent = (float)player->getMP() / player->getMPconst();
 	tmp = 250.0f*percent;
-	bug7 = tmp;
 	sp6.SetSize((int)tmp, 10);
+	percent = (float)enemyArray[0]->getHP() / enemyArray[0]->getHPconst();
+	tmp = 500.0f*percent;
+	sp7.SetSize(10,(int)tmp);
+
+
 	if (waveController->getTimer() == 100){
 		sp.SetImage("Data\\Textures\\D1", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
 		sp2.SetImage("Data\\Textures\\blank", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
 		sp4.SetImage("Data\\Textures\\blood", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
 		sp5.SetImage("Data\\Textures\\health", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
 		sp6.SetImage("Data\\Textures\\mana", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
+		sp7.SetImage("Data\\Textures\\donzo_health", 0, NULL, FALSE, NULL, 2, TRUE, FILTER_LINEAR);
 		sp2.SetPosition(-99999, -99999, -99999);
 		spritecounter = 100;
 	}
